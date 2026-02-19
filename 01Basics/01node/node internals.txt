@@ -1,0 +1,195 @@
+NODE Internals
+(OS + libuv + V8 level)
+
+1. First Principle: JavaScript is single-threaded
+- js single thread = 1 stack only(no parallel execution of js code)
+    - drawback: if one task takes a long time, it blocks the entire thread
+    - solution: use asynchronous APIs to avoid blocking the main thread
+- js single thread = 1 event loop only
+- js can handle multiple tasks concurrently using the event loop and callback queue
+- js handles I/O operations with the help of (libuv thread pool + OS kernel threads)
+
+2. Node Architecture
+- Node build up of:
+    - V8 engine (google chrome's js engine)
+    - libuv (handles async I/O operations, provides event loop and thread pool)
+    - C++ bindings (interface between js and native code)
+    - OS (operating system, provides low-level APIs for file system, network, etc.)
+    - thread pool: handle blocking tasks (async)
+    - 4 threads default 
+        - main thread (js execution + event loop)
+        - libuv thread pool (handles async tasks like file I/O, DNS lookup, etc.)
+        - OS kernel threads (handles network I/O, etc.)
+        - garbage collector thread (handles memory management)
+❄️Architecture:
+    JS Code
+    ↓
+    Event Loop
+    ↓
+    libuv
+    ↓
+    OS / Thread Pool
+
+3. Event Loop: it is responsible for managing async operations and callbacks in Node.js
+- it continuously checks the call stack and callback queue to execute tasks
+event loop scheduler:
+- Event loop is a scheduler.
+It:
+- Executes synchronous code
+- Checks queues
+- Executes callbacks when ready
+- It runs in cycles called: Ticks
+
+⚡️There are 6 phases:
+1. Timers: handles setTimeout and setInterval callbacks
+2. Pending Callbacks: handles callbacks for some system operations like TCP errors, etc.
+3. Idle / Prepare: internal phase for libuv
+4. Poll: handles I/O events, executes I/O callbacks, and waits for new I/O events
+5. Check: handles setImmediate callbacks
+6. Close Callbacks: handles close events like socket.on('close', callback)
+Timers → I/O → setImmediate → Close
+
+4. Macro Tasks vs Micro Tasks
+Macro Tasks: handle tasks that are scheduled to run in the future, such as:
+- setTimeout
+- setInterval
+- setImmediate
+- I/O callbacks
+Micro Tasks: handle tasks that are scheduled to run immediately after the current operation, such as:
+- Promise.then()
+- queueMicrotask()
+- process.nextTick()
+Rule:
+👉 Microtasks execute BEFORE moving to next event loop phase.
+
+eg: 
+console.log("A");
+setTimeout(() => {
+  console.log("B");
+}, 0);
+Promise.resolve().then(() => {
+  console.log("C");
+});
+console.log("D");
+⚡️Step-by-step Execution
+1️⃣ console.log("A") → prints A
+2️⃣ setTimeout → registered in Timers phase
+3️⃣ Promise.then → goes to Microtask queue
+4️⃣ console.log("D") → prints D
+•Call stack empty.
+•Now event loop checks:
+•Microtasks queue → runs first → prints C
+•Then moves to Timers phase → prints B
+output: A D C B
+👉 MicroTask has more priority than MacroTask
+
+🫳Task Priorities
+When multiple tasks are scheduled, Node.js prioritizes them as follows:
+1️⃣ process.nextTick()        (Highest priority)
+2️⃣ Promise microtasks (.then)
+3️⃣ Timers (setTimeout, setInterval)
+4️⃣ I/O callbacks
+5️⃣ setImmediate()
+6️⃣ Close callbacks
+
+☀️Memory Model
+Node memory consists of:
+- Stack (small, fast)
+- Heap (objects)
+- Buffers (binary data)
+- C++ bindings memory
+👉 V8 handles garbage collection automatically.
+
+👀Visual View
+Main Script
+   ↓
+Microtasks
+   ↓
+Timers Phase
+   ↓
+Pending Callbacks
+   ↓
+Poll (I/O)
+   ↓
+Check (setImmediate)
+   ↓
+Close Callbacks
+   ↓
+Repeat
+
+(Poll Phase → Check Phase → Timers Phase)
+
+
+5. process.nextTick()
+eg: 
+console.log("A");
+
+process.nextTick(() => {
+  console.log("B");
+});
+
+Promise.resolve().then(() => {
+  console.log("C");
+});
+
+console.log("D");
+output: A D B C
+Explanation:
+1️⃣ console.log("A") → prints A
+2️⃣ process.nextTick → goes to nextTick queue (highest priority)
+3️⃣ Promise.then → goes to Microtask queue
+4️⃣ console.log("D") → prints D
+•Call stack empty.
+•Now event loop checks:
+•nextTick queue → runs first → prints B
+•Then checks Microtasks queue → runs next → prints C
+👉 process.nextTick() has higher priority than Promise `{microtasks}` (.then)
+👉 nextTick queue runs before Promise microtask queue.
+
+6. setImmediate(): schedules a callback to run in the Check phase of the event loop.
+eg:
+setImmediate(() => {
+  console.log("Immediate");
+});
+
+console.log("Sync");
+output: Sync Immediate
+👉 Run this function immediately after the current I/O cycle completes.
+
+EXCEPTION: 
+eg:
+const fs = require("fs");
+fs.readFile(__filename, () => {
+  setTimeout(() => console.log("timeout"), 0);
+  setImmediate(() => console.log("immediate"));
+});
+output: immediate timeout
+Explanation:
+- I/O runs in Poll phase
+- After Poll → Check phase(executes setImmediate)
+- Then next loop → Timers phase(executes setTimeout)
+👉 In this case, setImmediate runs before setTimeout because it is scheduled in the Check phase, which comes before the Timers phase in the event loop cycle.
+
+
+7. CPU heavy operations
+eg:
+server.on("request", (req, res) => {
+  let sum = 0;
+  for (let i = 0; i < 10_000_000_000; i++) {
+    sum += i;
+  }
+  res.end("Done");
+});
+Issue:
+- event loop blocked
+- server frozen
+
+How to Handle CPU-Heavy Work
+Use:
+- Worker Threads
+- Child Processes
+- Clustering
+Node provides:
+- worker_threads module
+- cluster module
+- child_process module
