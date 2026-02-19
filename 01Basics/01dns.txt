@@ -1,0 +1,263 @@
+How Internet Works:
+(browser → server → database → back)
+
+1. DNS (Domain Name System): tanslates domain names to IP addresses
+🌐 DNS Server
+A DNS server is like the internet’s phonebook.
+It stores domain names (like google.com) and their matching IP addresses (like 142.250.190.78).
+When you type a website name, the DNS server helps find the correct IP address so your browser can connect.
+
+🔎 DNS Lookup
+A DNS lookup is the process of finding the IP address for a domain name.
+Example:
+You type example.com → DNS lookup finds its IP address → your browser connects to the website.
+
+⚡ DNS Cache
+A DNS cache is temporary storage of recently looked-up domain names and their IP addresses.
+It is saved on your computer (and also on DNS servers).
+It helps load websites faster.
+It avoids repeating the same DNS lookup again and again.
+Think of it like remembering a phone number instead of looking it up every time.
+
+🔄 DNS Propagation
+DNS propagation is the time it takes for DNS changes to spread across the internet.
+Example:
+If you change your website’s IP address, not all DNS servers update immediately because they store old information in their cache.
+Propagation can take:
+A few minutes
+Up to 48 hours (sometimes more)
+It depends mostly on the TTL (Time To Live) setting — which tells servers how long they should keep the old information.
+
+📁 DNS Records
+A DNS record is a rule that tells the DNS server what to do with a domain name.
+Here are the common types:
+A record → Connects a domain to an IPv4 address
+AAAA record → Connects a domain to an IPv6 address
+CNAME record → Makes one domain name an alias of another
+MX record → Tells where emails for the domain should go
+TXT record → Stores text information (often for verification or security)
+
+🖥️ Types of DNS Servers
+1️⃣ Authoritative DNS Server
+This server has the official records for a domain.
+When you ask it about a domain, it gives you the final answer.
+It gives the final and correct answer about that domain.
+👉 It owns the data.
+2️⃣ Recursive DNS Server
+This server does the work for you.
+It receives your request.
+If it doesn’t know the answer, it asks other DNS servers.
+It keeps asking until it finds the final answer.
+Then it gives the answer back to you.
+👉 You ask once — it handles everything.
+Examples include public resolvers like Google Public DNS and Cloudflare.
+3️⃣ Iterative DNS Server
+This server gives the best information it has.
+If it knows the answer, it replies.
+If it doesn’t, it tells you which server to ask next.
+You (or another server) must continue the process.
+👉 It gives directions instead of doing all the work.
+🧠 Simple Summary
+DNS server = Internet phonebook
+DNS lookup = Finding a website’s IP
+DNS cache = Temporary memory to speed things up
+DNS propagation = Time for changes to spread
+Authoritative server = Has the real answer
+Recursive server = Finds the answer for you
+Iterative server = Points you to the next place to ask
+
+browser → DNS lookup → IP address → server
+• Browser checks local cache
+• OS checks DNS cache
+• Router checks cache
+• If not found → DNS resolver
+• Root DNS → TLD DNS → Authoritative DNS
+• Returns IP address
+- TLD DNS -> Top-Level Domain DNS server, responsible for managing the DNS records for a specific top-level domain (TLD) such as .com, .org, .net, etc. It provides information about the authoritative DNS servers for the domains under that TLD.
+- DNS resolver -> a server that receives DNS queries from client devices and performs the necessary steps to resolve the query by contacting other DNS servers on behalf of the client. It starts by checking its own cache for the requested domain name, and if it doesn't find it, it will query other DNS servers until it finds the authoritative DNS server for the domain and retrieves the necessary information to respond to the client's query.
+
+❄️ Recursive DNS
+⚡️ Definition:
+- In recursive DNS, the DNS server takes full responsibility for resolving the domain name and returning the final answer to the client.
+⚡️ How it works
+- Your device (stub resolver) asks a recursive resolver (usually your ISP or a public DNS like Google Public DNS or Cloudflare).
+- If the resolver doesn’t already have the answer cached, it:
+- Queries a root server
+- Then a TLD server (e.g., .com)
+- Then the authoritative name server
+- It returns the final IP address to your device.
+⚡️ Key Characteristics
+- The client asks once
+- The recursive resolver does all the work
+- Results are typically cached for future requests
+- Faster for clients after caching
+Example
+• You → Recursive Resolver → Root → TLD → Authoritative → Back to You
+
+❄️ Iterative DNS
+⚡️ Definition:
+- In iterative DNS, each DNS server responds with the best answer it has, usually referring the client to another DNS server.
+⚡️ How it works
+- Client asks a DNS server.
+- If that server doesn’t know the answer, it replies with a referral (e.g., “Ask this TLD server”).
+- The client then queries the referred server.
+- This continues until the authoritative server provides the answer.
+⚡️ Key Characteristics
+- The client (or resolver) does the work step-by-step
+- Each server returns the best info it has (not the final answer unless authoritative)
+- Less workload per server
+Example
+• You → Root → TLD → Authoritative → Final Answer
+
+📊 Comparison Table
+Feature	                    Recursive DNS	                Iterative DNS
+Who does the work?	        Recursive resolver	            Client (or resolver step-by-step)
+Client queries	            One request	                    Multiple requests
+Server responsibility	    Full resolution	                Referral only
+Caching	                    Yes (commonly)	                Less centralized caching
+Typical usage	            Client to ISP/Public DNS	    Between DNS servers
+
+☀️ Analogy
+Recursive: You ask a librarian for a book, and they go find it for you.
+Iterative: The librarian tells you which section to check next until you find it yourself.
+
+🧠 Real-World Usage
+Your computer typically uses recursive DNS.
+DNS servers communicate with each other using iterative queries.
+Public DNS services like OpenDNS act as recursive resolvers for users.
+
+DNS TTL (Time To Live): 
+⏳ DNS TTL (Time To Live)
+DNS TTL is the amount of time a DNS record is allowed to stay in cache before it must be refreshed.
+It is set in seconds.
+Example: TTL = 3600 → record is cached for 1 hour.
+- After TTL expires, the DNS server must ask again for updated information.
+Why TTL matters
+- High TTL (e.g., 24 hours)
+    - Faster performance
+    - Fewer DNS lookups
+- Slower updates if changes are made
+    - Low TTL (e.g., 5 minutes)
+    - Changes update faster
+    - More DNS traffic
+👉 Think of TTL like an expiration date on stored information.
+
+☠️ DNS Poisoning (DNS Cache Poisoning)
+- DNS poisoning is a cyberattack where false DNS information is inserted into a DNS cache.
+- This causes users to be redirected to a fake or malicious website instead of the real one.
+Example
+You type: bank.com
+Instead of going to the real bank website, you are secretly sent to a fake website controlled by an attacker.
+- Why it’s dangerous
+    - Steals passwords
+    - Steals credit card information
+    - Spreads malware
+- How it’s prevented
+    - DNSSEC (Domain Name System Security Extensions)
+    - Secure DNS protocols like DoH
+    - Strong server security practices
+👉 It’s like someone changing a phonebook number to trick you into calling the wrong person.
+
+🔐 DNS over HTTPS (DoH)
+- DNS over HTTPS (DoH) is a secure way to perform DNS lookups.
+Normally:
+- DNS requests are sent in plain text.
+- Anyone on the network can see which websites you are visiting.
+With DoH:
+- DNS requests are encrypted.
+- They are sent over HTTPS (the same secure protocol used for secure websites).
+Benefits
+- Improves privacy
+- Prevents spying on DNS traffic
+- Helps prevent DNS manipulation
+- Example Providers
+Public DNS services that support DoH include:
+- Cloudflare
+- Google Public DNS
+👉 Think of DoH like putting your DNS requests inside a locked envelope instead of sending them as postcards.
+🧠 Security
+TTL → How long DNS information stays cached
+DNS Poisoning → Fake DNS data used to redirect users
+DoH → Encrypts DNS requests for privacy and security
+
+
+
+2. TCP Handshake
+Before sending HTTP request:
+- TCP 3-way handshake:
+- Client → SYN
+- Server → SYN-ACK
+- Client → ACK
+- Connection established.
+
+Why?
+- Because TCP guarantees:
+- Reliable delivery
+- Ordered packets
+- Error checking
+- Congestion control
+
+3. TLS Handshake (HTTPS Security)
+Now encryption happens:
+- Client sends supported cipher suites
+- Server sends certificate
+- Client verifies certificate
+- Session key generated
+- Encrypted communication begins
+DevSecOps Insight:
+- TLS prevents MITM
+- Certificate validation is critical
+- Weak cipher = vulnerability
+** A cipher suite is a set of security algorithms used together to protect data during a secure connection (like HTTPS). **
+
+4. HTTP Request Sent
+Example:
+GET / HTTP/1.1
+Host: google.com
+User-Agent: Chrome
+
+Server responds:
+200 OK
+Content-Type: text/html
+
+5. Server Processing
+- Inside server:
+- Load balancer receives request
+- Routes to app server
+- Middleware executes
+- Controller logic runs
+- Database query executed
+- Response generated
+
+6. Database Interaction
+- If DB is involved:
+- Query planner analyzes SQL
+- Index used?
+- Table scan?
+- Lock acquired?
+- Transaction isolation applied?
+- This is where performance bottlenecks live.
+
+🔍 FullStack Architecture Diagram
+Client
+↓
+DNS
+↓
+TCP
+↓
+TLS
+↓
+Load Balancer
+↓
+App Server
+↓
+Cache
+↓
+Database
+
+
+Socket -> IP Address + Port Number + Protocol
+- socket is used to communicate between two process/machine via network
+- IP address identifies the machine
+- Port number identifies the specific application/service on that machine
+- Protocol (TCP/UDP) defines how data is transmitted
