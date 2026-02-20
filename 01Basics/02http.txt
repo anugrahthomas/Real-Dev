@@ -1,0 +1,175 @@
+HTTP Internals:
+
+HTTP is the protocol that powers the web. Modern versions like HTTP run on top of TCP (and sometimes QUIC for HTTP/3).
+
+QUIC: A new transport protocol that runs on top of UDP, designed to reduce latency and improve performance for HTTP/3.
+
+1. HTTP Headers
+Headers are metadata sent with requests and responses.
+- They control:
+• Caching
+• Authentication
+• Content type
+• Compression
+• Cookies
+• Connection behavior
+
+Request Headers(Client → Server)
+GET /users HTTP/1.1
+Host: example.com
+User-Agent: Chrome
+Accept: application/json
+Authorization: Bearer token
+
+Header	            Purpose
+Host	            Target domain
+User-Agent	        Client info
+Accept	            Allowed response formats
+Authorization	    Authentication
+Cookie	            Session data
+Accept-Encoding	    Supported compression
+
+Response Headers (Server → Client)
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 123
+Cache-Control: max-age=3600
+
+Header	            Purpose
+Content-Type	    Type of response data
+Content-Length	    Size of body
+Set-Cookie	        Set session cookie
+Cache-Control	    Caching policy
+ETag	            Resource version identifier
+Content-Encoding	Compression used
+
+HTTP Caching
+Caching reduces server load and improves performance.
+There are two main caching strategies:
+
+🟢 A) Strong Caching (Freshness-based)
+Controlled by:
+Cache-Control: max-age=3600
+
+Meaning:
+Browser can use cached response for 1 hour without contacting server.
+
+Other directives:
+- public
+- private
+- no-cache
+- no-store
+🔵 B) Validation Caching (Revalidation)
+Uses:
+ETag
+- Last-Modified
+
+Flow:
+Server sends:
+- ETag: "abc123"
+Client later sends:
+- If-None-Match: "abc123"
+Server replies:
+- 304 Not Modified (no body)
+- OR new version
+Efficient because:
+- No full response is sent if unchanged.
+
+🧠 Caching Layers
+Browser cache
+OS cache
+CDN cache
+Reverse proxy cache
+
+3️⃣ Proxies
+A proxy sits between client and server.
+🔹 Forward Proxy
+Client → Proxy → Internet
+Used for:
+- Corporate filtering
+- Privacy
+- IP masking
+
+🔹 Reverse Proxy
+Client → Reverse Proxy → Server
+Used for:
+- Load balancing
+- SSL termination
+- Caching
+- Security
+Common reverse proxies:
+• NGINX
+• HAProxy
+
+🔹 CDN (Content Delivery Network)
+A distributed reverse proxy network.
+Example:
+• Cloudflare
+CDNs:
+Cache static content globally
+Reduce latency
+Protect from DDoS
+
+HTTP Compression
+Compression reduces response size.
+Client sends:
+- Accept-Encoding: gzip, br
+Server responds:
+- Content-Encoding: gzip
+Common Compression Algorithms
+Algorithm	    Notes
+Gzip	        Very common
+Brotli (br)	    Better compression
+Deflate	        Older
+Zstd	        Emerging
+
+Why Compression Matters
+•Without compression:
+- 1MB JSON → 1MB transfer
+•With compression:
+- 1MB JSON → ~100-300KB
+Huge performance improvement.
+
+Request–Response Lifecycle (Full Flow)
+- Browser creates request
+- DNS resolves domain
+- TCP connection established
+- TLS handshake (HTTPS)
+- HTTP request sent
+- Proxy/CDN may intercept
+- Server processes request
+- Response sent back
+- Browser checks caching rules
+- Content rendered
+
+HTTP Versions Overview
+🔹 HTTP/1.1
+Text-based
+One request per connection (mostly)
+Head-of-line blocking
+
+🔹 HTTP/2
+Binary protocol
+Multiplexing (multiple requests in one connection)
+Header compression (HPACK)
+
+🔹 HTTP/3
+Runs over QUIC
+Faster connection setup
+Better loss recovery
+
+🧠 Real Backend Insight (Important)
+When you use:
+- res.writeHead(200, { "Content-Type": "application/json" });
+You're literally constructing HTTP response headers.
+When you use:
+- req.headers
+raw HTTP headers from the client.
+Everything in Express or Fastify builds on this.
+
+🎯 Key Concepts Summary
+Headers = metadata
+Cache-Control & ETag = caching control
+Proxies = traffic middlemen
+Compression = bandwidth optimization
+HTTP/2 & HTTP/3 = performance upgrades
