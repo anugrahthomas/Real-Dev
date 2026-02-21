@@ -1,0 +1,94 @@
+🔥 EVENT LOOP — INTERNAL PHASE ARCHITECTURE
+
+🧠 The Real Node Event Loop Cycle
+👉 Each loop iteration = one tick
+Each tick runs phases in this order:
+1. Timers
+2. Pending Callbacks
+3. Idle / Prepare
+4. Poll
+5. Check
+6. Close Callbacks
+
+NOTE: Microtasks (Promises, process.nextTick) run after each phase, before the next phase starts.
+
+1. Timers (timer phase):
+• setTimeout, setInterval callbacks executed here.
+2. Pending Callbacks:
+• I/O callbacks (e.g. TCP errors, DNS lookup callbacks) executed here.
+3. Idle / Prepare:
+• Internal phase for libuv, not directly accessible.
+4. Poll:(This is the heart of Node)
+• Handles I/O events, executes I/O callbacks, and waits for new I/O events.
+5. Check:
+• setImmediate callbacks executed here, cleanup events.
+6. Close Callbacks:
+• Handles close events like socket.on('close', callback) executed here.
+NOTE: check phase runs after poll phase, so setImmediate callbacks run after I/O events are processed.
+
+🔬 Microtasks (Critical Detail)
+After:
+- Every callback execution
+- Every phase transition
+Node drains:
+- process.nextTick queue
+- Promise microtask queue
+
+
+🧠 Visual Flow
+Timers: setTimeout, setInterval
+↓
+Microtasks: process.nextTick, Promise.then
+↓
+Pending: I/O callbacks
+↓
+Microtasks
+↓
+Poll: I/O events, I/O callbacks
+↓
+Microtasks
+↓
+Check: setImmediate
+↓
+Microtasks
+↓
+Close: socket.on('close')
+↓
+Microtasks
+(Loop repeats)
+
+NOTE: inside I/O callbacks, setImmediate runs first.
+
+MicroTask Starving:
+when a long running microtask keeps the event loop from moving to the next phase, causing delays in I/O processing. Avoid this by keeping microtasks short and efficient.
+eg: 
+function loop() {
+  Promise.resolve().then(loop);
+}
+loop();
+setTimeout(() => {
+  console.log("This will never run due to microtask starving");
+}, 0);
+longRunningMicrotask();
+
+
+
+🧠 Event Loop & HTTP Server
+
+When request arrives:
+1. OS notifies libuv
+2. Poll phase receives event
+3. Callback executed
+4. Microtasks drained(e.g. Promise.then)
+5. Loop continues
+
+🧠 Architecture knowledge
+| Operation      | Runs Where      | Blocks?   |
+| -------------- | --------------- | --------- |
+| HTTP I/O       | OS + libuv      | No        |
+| File read      | Thread pool     | No        |
+| JSON.parse     | Main thread     | YES       |
+| Infinite loop  | Main thread     | YES       |
+| Promise chain  | Microtask queue | Can block |
+| bcrypt (async) | Thread pool     | No        |
+| Heavy for-loop | Main thread     | YES       |
