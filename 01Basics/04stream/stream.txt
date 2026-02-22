@@ -1,0 +1,101 @@
+Stream: sequence of data in chunks, not all at once.
+
+Types of Streams:
+1. Readable Stream
+2. Writable Stream
+3. Dupex Stream: Can read and write (tcp/socket)
+4. Transform Stream: special duplex stream that modifies data while passing it through
+  - Compression
+  - Encryption
+  - Uppercasing text
+eg:
+const { Transform } = require("stream");
+const upperCase = new Transform({
+  transform(chunk, encoding, callback) {
+    this.push(chunk.toString().toUpperCase());
+    callback();
+  }
+});
+
+
+⚙️ How Streams Work Internally
+Streams use:
+- Buffering
+- Events
+- Backpressure
+
+📡 Flowing vs Paused Mode
+- Readable streams operate in 2 modes:
+🔹 Flowing Mode
+- Automatically emits "data" events.
+- stream.on("data", chunk => {})
+🔹 Paused Mode
+- You manually call .read()
+
+🚦 Backpressure (Very Important)
+Backpressure happens when:
+- Writable stream cannot handle data as fast as readable stream produces it.
+Node handles this using:
+- readable.pipe(writable)
+
+.pipe() automatically:
+- Manages flow
+- Prevents memory overload
+- Handles backpressure
+
+
+🆚 Streams vs Buffers
+Buffers                   Streams
+Entire data in memory	    Chunked data
+Heavy memory usage	      Efficient
+Blocking risk	            Non-blocking
+
+
+🧠 Mental Model
+Think of streams like:
+🚰 A water pipe
+• Readable = faucet
+• Writable = drain
+• Pipe = pipe connection
+• Backpressure = pressure control valve
+
+pipeline:
+const { pipeline } = require("stream/promises");
+await pipeline(
+  fs.createReadStream("input.txt"),
+  fs.createWriteStream("output.txt")
+);
+
+Streams are used in:
+- HTTP requests
+- HTTP responses
+- File uploads
+- File downloads
+- Video streaming
+- Proxy servers
+- Compression
+- Database exports
+
+☀️ Streams + HTTP Internals
+req.on("data", chunk => {})
+This is how:
+- Multer works
+- S3 upload works
+- Video streaming works
+
+
+⚠️ Memory Comparison
+Without stream:
+- 1GB file → 1GB RAM usage.
+With stream:
+- Maybe 64KB at a time.
+
+
+🧠 Architect-Level Thinking
+- Where are streams used in real systems?
+- Nginx proxying requests
+- CDN streaming video
+- Netflix adaptive bitrate
+- API gateways
+- Reverse proxies
+- Microservice communication
