@@ -1,0 +1,6 @@
+----------------------------180097371575486695452502
+Content-Disposition: form-data; name="file.txt"; filename="file.txt"
+Content-Type: text/plain
+
+This is my test data file
+----------------------------180097371575486695452502--
