@@ -1,0 +1,93 @@
+🏗 Worker Threads Architecture
+Worker threads:
+- Separate JS thread
+- Separate event loop
+- Separate memory space
+- Communicate via message passing
+👉 Like mini Node inside Node
+
+
+Worker Threads:
+- Good for CPU
+- Not good for high-frequency short tasks
+- Have overhead
+- Use memory
+- Require synchronization
+Large-scale systems instead use:
+- Separate microservices
+- Job queues (Redis + BullMQ)
+- Background processors
+
+
+Worker Lifecycle
+Worker states:
+- Created
+- Running
+- Sending/receiving messages
+- Exits (normal or error)
+
+
+
+Communication Between Threads
+Workers communicate via:
+✅ Message Passing (Structured Clone)
+worker.postMessage({ name: "Alice" });
+
+This uses the structured clone algorithm (same as browsers).
+Limitations:
+- Functions cannot be cloned
+- Large objects are copied (performance cost)
+
+✅ Shared Memory (Advanced)
+Using:
+SharedArrayBuffer
+Atomics
+
+Example:
+const sharedBuffer = new SharedArrayBuffer(4);
+const sharedArray = new Int32Array(sharedBuffer);
+
+This allows true shared memory.
+☢️ Requires careful synchronization using 'Atomics'
+
+
+When NOT to Use Worker Threads
+❌ For I/O tasks
+❌ For small computations
+❌ For simple APIs
+❌ If startup cost outweighs benefit
+
+Error Handling
+Workers emit:
+- worker.on('error', callback);
+- worker.on('exit', callback);
+
+Best Practices
+- Use worker pool
+- Keep tasks CPU-bound
+- Avoid passing huge objects
+- Use TransferList for buffers
+- Handle errors
+- Measure before optimizing
+
+Internal Architecture (Deep Dive)
+Under the hood:
+Each worker has:
+- Separate V8 isolate
+- Separate libuv event loop
+Shares:
+- Same process
+- Same native memory
+- Same environment variables
+Important:
+- Blocking inside worker does NOT block main thread
+- But blocking inside worker blocks THAT worker
+
+
+
+| Feature       | Worker Threads  | Cluster      |
+| ------------- | --------------- | ------------ |
+| Memory        | Shared possible | Separate     |
+| Overhead      | Low             | High         |
+| Communication | Fast            | IPC          |
+| Best For      | CPU work        | Scaling HTTP |
