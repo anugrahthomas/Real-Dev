@@ -1,0 +1,150 @@
+HTTP INTERNALS (DEEP PRODUCTION LEVEL)
+
+• HTTP request structure
+• Headers (real purpose)
+• Keep-Alive
+• Compression (gzip, brotli)
+• Caching (ETag, Cache-Control)
+• Reverse proxies
+• Nginx internals
+• Load balancing algorithms
+• CDN behavior
+
+❄️ HTTP AS A RAW PROTOCOL
+- Text-based protocol (HTTP/1.1)
+- Runs over TCP
+- Stateless
+
+Raw HTTP Request (HTTP/1.1)
+- GET /users?id=1 HTTP/1.1
+- Host: example.com
+- User-Agent: Chrome/123
+- Accept: application/json
+- Connection: keep-alive
+Structure:
+• Request Line
+• Headers
+• Blank line
+• Optional Body
+
+Raw HTTP Response(HTTP/1.1)
+- HTTP/1.1 200 OK
+- Content-Type: application/json
+- Content-Length: 27
+
+{"id":1,"user":"User1"}
+Structure:
+• Status line
+• Headers
+• Blank line
+• Body
+
+❄️ Important Headers:
+1️⃣ Host
+Required in HTTP/1.1
+Enables virtual hosting.
+2️⃣ Content-Type
+Tells browser how to interpret body.
+Examples:
+application/json
+text/html
+image/png
+3️⃣ Content-Length
+Defines body size.
+Without it:
+- Client waits
+- Or uses chunked transfer
+4️⃣ Transfer-Encoding: chunked
+If no Content-Length, server can send in chunks.
+5️⃣ Connection: keep-alive
+Without keep-alive:
+- TCP closes after each request.
+With keep-alive:
+- Same TCP reused.
+- Lower latency.
+- Better performance.
+  
+
+❄️ HTTP METHODS (Semantics Matter):
+GET → Safe, idempotent
+POST → Not idempotent
+PUT → Idempotent
+PATCH → Partial update
+DELETE → Idempotent
+
+Idempotent means:
+Multiple same requests → same result.
+
+❄️ STATUS CODES:
+200 → OK
+201 → Created
+204 → No Content
+301 → Permanent redirect
+304 → Not Modified
+400 → Bad Request
+401 → Unauthorized
+403 → Forbidden
+404 → Not Found
+429 → Too Many Requests
+500 → Internal Server Error
+
+❄️ HTTP CACHING (CRITICAL FOR SCALING)
+1. Cache-Control
+Example:
+- Cache-Control: max-age=3600
+Means:
+Browser can cache for 1 hour.
+
+2. ETag (Validation Caching)
+Server sends:
+- ETag: "abc123"
+Next request:
+If-None-Match: "abc123"
+If unchanged:
+Server replies:
+- 304 Not Modified
+- No body sent.
+- Saves bandwidth.
+
+3. Last-Modified
+Works similarly:
+If-Modified-Since
+
+There are two main types of caches:
+- Client-side caches (browser caches, service workers)
+- Intermediate caches (CDNs, reverse proxies like Varnish, Nginx)
+
+☀️ Cache-Control Header
+Cache-Control is the main header controlling caching behavior.
+Common directives:
+Directive	              Meaning
+no-store	              Never store the response in cache
+no-cache	              Can store, but must revalidate before using
+private	                  Only cacheable by client (not proxy/CDN)
+public	                  Cacheable by any cache (browser + CDN)
+max-age=<seconds>	      Response is fresh for <seconds>
+s-maxage=<seconds>	      Overrides max-age for shared caches
+must-revalidate	          Must check with server after expiry
+
+Conditional Requests: ETag and Last-Modified
+
+Table of Cache Headers
+| Header              | Type             | Purpose                                      |
+| ------------------- | ---------------- | -------------------------------------------- |
+| `Cache-Control`     | Request/Response | Control caching rules, max-age, revalidation |
+| `Expires`           | Response         | Absolute expiry date (older)                 |
+| `ETag`              | Response         | Unique content identifier for revalidation   |
+| `Last-Modified`     | Response         | Timestamp for revalidation                   |
+| `If-None-Match`     | Request          | Conditional GET using ETag                   |
+| `If-Modified-Since` | Request          | Conditional GET using Last-Modified          |
+
+👉 Caching is all about balancing freshness vs performance. You cache aggressively for rarely changing data and revalidate or avoid caching for highly dynamic content.
+
+
+Intuition check:
+- Cache = pantry.
+- Cache-Control = rules for what to keep and how long.
+- ETag = fingerprint of content.
+- Last-Modified = timestamp of last change.
+- Expires = “valid until” label.
+- Conditional GET = asking, “Is my copy still good?”
